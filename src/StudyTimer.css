@@ -153,3 +153,75 @@
   height: 24px;
   transition: all 0.3s ease;
 }
+
+/* Modals inside Timer */
+.settings-modal h2, .music-modal h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.setting-row input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.6rem;
+  border-radius: 10px;
+  width: 80px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+}
+
+.setting-row input:focus {
+  outline: none;
+  border-color: white;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.save-btn {
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+.music-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.music-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1.05rem;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.music-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.music-btn.active {
+  background: white;
+  color: #1a1b26;
+  font-weight: 800;
+  border-color: white;
+}

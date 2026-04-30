@@ -28,6 +28,7 @@ const BACKGROUNDS = [
 
 function App() {
   const [bgIndex, setBgIndex] = useState(0);
+  const [showInfo, setShowInfo] = useState(false);
 
   // Automatically cycle through background images every 8 seconds
   useEffect(() => {
@@ -51,6 +52,28 @@ function App() {
           }}
         />
       ))}
+      
+      <div className="top-nav">
+        <button className="nav-icon-btn" onClick={() => setShowInfo(true)} title="Information">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        </button>
+      </div>
+
+      {showInfo && (
+        <div className="modal-overlay" onClick={() => setShowInfo(false)}>
+          <div className="modal-content info-modal" onClick={e => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowInfo(false)}>✕</button>
+            <h2>About Pomodoro</h2>
+            <p>The <strong>Pomodoro Technique</strong> is a time management method developed by <strong>Francesco Cirillo</strong> in the late 1980s in <strong>Italy</strong>.</p>
+            <p>It uses a timer to break work into intervals, typically 25 minutes in length, separated by short breaks. Each interval is known as a <em>pomodoro</em>, from the Italian word for tomato, after the tomato-shaped kitchen timer Cirillo used as a university student.</p>
+          </div>
+        </div>
+      )}
+
       <div className="app-content">
         <StudyTimer />
       </div>
