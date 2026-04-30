@@ -35,6 +35,64 @@ const StudyTimer = () => {
   const [showMusicMenu, setShowMusicMenu] = useState(false);
   const [currentMusic, setCurrentMusic] = useState('none');
 
+  // Task & Quote State
+  const [tasks, setTasks] = useState([]);
+  const [taskInput, setTaskInput] = useState('');
+  const [quote, setQuote] = useState("What's your focus today?");
+
+  const getQuoteForTask = (taskText) => {
+    const text = taskText.toLowerCase();
+    if (text.includes('study') || text.includes('read') || text.includes('book') || text.includes('learn') || text.includes('exam')) {
+      const studyQuotes = [
+        "Education is the most powerful weapon which you can use to change the world.",
+        "The beautiful thing about learning is that no one can take it away from you.",
+        "Study now, be proud later.",
+        "There are no shortcuts to any place worth going."
+      ];
+      return studyQuotes[Math.floor(Math.random() * studyQuotes.length)];
+    } else if (text.includes('code') || text.includes('program') || text.includes('dev') || text.includes('bug')) {
+      const codeQuotes = [
+        "Talk is cheap. Show me the code.",
+        "First, solve the problem. Then, write the code.",
+        "Code is like humor. When you have to explain it, it's bad.",
+        "Make it work, make it right, make it fast."
+      ];
+      return codeQuotes[Math.floor(Math.random() * codeQuotes.length)];
+    } else if (text.includes('workout') || text.includes('gym') || text.includes('exercise') || text.includes('fit')) {
+      const fitnessQuotes = [
+        "The only bad workout is the one that didn't happen.",
+        "What seems impossible today will one day become your warm-up.",
+        "Sweat is just fat crying.",
+        "Train hard, stay focused."
+      ];
+      return fitnessQuotes[Math.floor(Math.random() * fitnessQuotes.length)];
+    } else {
+      const generalQuotes = [
+        "Focus on being productive instead of busy.",
+        "Don't stop until you're proud.",
+        "Success is what happens after you have survived all of your mistakes.",
+        "Do something today that your future self will thank you for."
+      ];
+      return generalQuotes[Math.floor(Math.random() * generalQuotes.length)];
+    }
+  };
+
+  const handleAddTask = (e) => {
+    e.preventDefault();
+    if (!taskInput.trim()) return;
+    setTasks([...tasks, { id: Date.now(), text: taskInput, completed: false }]);
+    setQuote(getQuoteForTask(taskInput));
+    setTaskInput('');
+  };
+
+  const toggleTaskCompletion = (id) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  };
+
+  const removeTask = (id) => {
+    setTasks(tasks.filter(t => t.id !== id));
+  };
+
   // Audio Contexts
   const audioCtxRef = useRef(null);
   const oscillatorsRef = useRef([]);
@@ -115,7 +173,7 @@ const StudyTimer = () => {
        noiseSourceRef.current = null;
     }
 
-    if (currentMusic === 'none' || currentMusic === 'lofi' || currentMusic === 'instrumental') {
+    if (currentMusic === 'none' || currentMusic === 'lofi' || currentMusic === 'instrumental' || currentMusic === 'rain') {
       return; 
     }
 
@@ -150,7 +208,7 @@ const StudyTimer = () => {
       gainNode.connect(ctx.destination);
       oscillatorsRef.current = [oscLeft, oscRight];
     } 
-    else if (currentMusic === 'brown_noise' || currentMusic === 'rain') {
+    else if (currentMusic === 'brown_noise') {
       // Deep brown noise logic
       const bufferSize = ctx.sampleRate * 2; 
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
@@ -169,21 +227,10 @@ const StudyTimer = () => {
 
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.value = currentMusic === 'rain' ? 800 : 300; 
+      filter.frequency.value = 300; 
 
       const gainNode = ctx.createGain();
-      gainNode.gain.value = currentMusic === 'rain' ? 0.4 : 0.8;
-
-      if (currentMusic === 'rain') {
-        const lfo = ctx.createOscillator();
-        lfo.type = 'sine';
-        lfo.frequency.value = 0.1; 
-        const lfoGain = ctx.createGain();
-        lfoGain.gain.value = 400;
-        lfo.connect(lfoGain).connect(filter.frequency);
-        lfo.start();
-        oscillatorsRef.current.push(lfo); 
-      }
+      gainNode.gain.value = 0.8;
 
       noiseSource.connect(filter).connect(gainNode).connect(ctx.destination);
       noiseSource.start();
@@ -260,6 +307,15 @@ const StudyTimer = () => {
   return (
     <div className="study-timer-container">
       {/* Invisible YouTube Iframes */}
+      {currentMusic === 'rain' && (
+        <iframe 
+          style={{ display: 'none' }}
+          src="https://www.youtube.com/embed/69QdAw3ApNk?autoplay=1&start=1214" 
+          frameBorder="0" 
+          allow="autoplay" 
+          title="Rain Storm Radio"
+        />
+      )}
       {currentMusic === 'lofi' && (
         <iframe 
           style={{ display: 'none' }}
@@ -272,7 +328,7 @@ const StudyTimer = () => {
       {currentMusic === 'instrumental' && (
         <iframe 
           style={{ display: 'none' }}
-          src="https://www.youtube.com/embed/5qap5aO4i9A?autoplay=1" 
+          src="https://www.youtube.com/embed/n61ULEU7CO0?autoplay=1" 
           frameBorder="0" 
           allow="autoplay" 
           title="Instrumental Radio"
@@ -385,6 +441,35 @@ const StudyTimer = () => {
                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
              </svg>
           </button>
+        </div>
+
+        {/* Task / To-Do Section */}
+        <div className="task-section">
+          <div className="quote-display">
+            <p>"{quote}"</p>
+          </div>
+          <form className="task-form" onSubmit={handleAddTask}>
+            <input 
+              type="text" 
+              placeholder="What are you working on?" 
+              value={taskInput} 
+              onChange={e => setTaskInput(e.target.value)}
+            />
+            <button type="submit" className="add-task-btn">+</button>
+          </form>
+          <div className="task-list">
+            {tasks.map(task => (
+              <div key={task.id} className={`task-item ${task.completed ? 'completed' : ''}`}>
+                <div className="task-checkbox" onClick={() => toggleTaskCompletion(task.id)}>
+                   {task.completed && <span>✓</span>}
+                </div>
+                <span className="task-text" onClick={() => toggleTaskCompletion(task.id)}>
+                  {task.text}
+                </span>
+                <button className="delete-task-btn" onClick={() => removeTask(task.id)}>✕</button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
