@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './StudyTimer.css';
 
 const MUSIC_OPTIONS = [
@@ -20,11 +20,11 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
       LONG_BREAK: 15
     };
   });
-  
+
   useEffect(() => {
     localStorage.setItem('studyTimerSettings', JSON.stringify(settings));
   }, [settings]);
-  
+
   const MODES = {
     POMODORO: { label: 'pomodoro', time: settings.POMODORO * 60 },
     SHORT_BREAK: { label: 'short break', time: settings.SHORT_BREAK * 60 },
@@ -35,7 +35,7 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
   const [timeLeft, setTimeLeft] = useState(MODES.POMODORO.time);
   const [isActive, setIsActive] = useState(false);
   const [isTickingActive, setIsTickingActive] = useState(false);
-  
+
   // Modals
   const [showSettings, setShowSettings] = useState(false);
   const [tempSettings, setTempSettings] = useState(settings);
@@ -47,7 +47,7 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
     const saved = localStorage.getItem('studyTimerTasks');
     return saved ? JSON.parse(saved) : [];
   });
-  
+
   useEffect(() => {
     localStorage.setItem('studyTimerTasks', JSON.stringify(tasks));
   }, [tasks]);
@@ -133,7 +133,7 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
     const gainNode = ctx.createGain();
 
     const isTick = tickTockRef.current;
-    tickTockRef.current = !isTick; 
+    tickTockRef.current = !isTick;
 
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(isTick ? 1200 : 800, ctx.currentTime);
@@ -180,16 +180,16 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
   useEffect(() => {
     // Stop all current sounds
     if (oscillatorsRef.current) {
-      oscillatorsRef.current.forEach(osc => { try { osc.stop(); osc.disconnect(); } catch(e){} });
+      oscillatorsRef.current.forEach(osc => { try { osc.stop(); osc.disconnect(); } catch (e) { } });
       oscillatorsRef.current = [];
     }
     if (noiseSourceRef.current) {
-       try { noiseSourceRef.current.stop(); noiseSourceRef.current.disconnect(); } catch(e){}
-       noiseSourceRef.current = null;
+      try { noiseSourceRef.current.stop(); noiseSourceRef.current.disconnect(); } catch (e) { }
+      noiseSourceRef.current = null;
     }
 
     if (currentMusic === 'none' || currentMusic === 'lofi' || currentMusic === 'instrumental' || currentMusic === 'rain') {
-      return; 
+      return;
     }
 
     if (!audioCtxRef.current) {
@@ -199,10 +199,10 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
     if (ctx.state === 'suspended') ctx.resume();
 
     if (currentMusic === 'binaural') {
-      const baseFreq = 150; 
-      const beatFreq = 40; 
+      const baseFreq = 150;
+      const beatFreq = 40;
       const gainNode = ctx.createGain();
-      gainNode.gain.value = 0.05; 
+      gainNode.gain.value = 0.05;
 
       const oscLeft = ctx.createOscillator();
       const panLeft = ctx.createStereoPanner();
@@ -222,10 +222,10 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
 
       gainNode.connect(ctx.destination);
       oscillatorsRef.current = [oscLeft, oscRight];
-    } 
+    }
     else if (currentMusic === 'brown_noise') {
       // Deep brown noise logic
-      const bufferSize = ctx.sampleRate * 2; 
+      const bufferSize = ctx.sampleRate * 2;
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
       let lastOut = 0;
@@ -233,16 +233,16 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
         const white = Math.random() * 2 - 1;
         data[i] = (lastOut + (0.02 * white)) / 1.02;
         lastOut = data[i];
-        data[i] *= 3.5; 
+        data[i] *= 3.5;
       }
-      
+
       const noiseSource = ctx.createBufferSource();
       noiseSource.buffer = buffer;
       noiseSource.loop = true;
 
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.value = 300; 
+      filter.frequency.value = 300;
 
       const gainNode = ctx.createGain();
       gainNode.gain.value = 0.8;
@@ -255,8 +255,8 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
 
   useEffect(() => {
     return () => {
-      oscillatorsRef.current.forEach(osc => { try { osc.stop(); osc.disconnect(); } catch(e){} });
-      if (noiseSourceRef.current) { try { noiseSourceRef.current.stop(); noiseSourceRef.current.disconnect(); } catch(e){} }
+      oscillatorsRef.current.forEach(osc => { try { osc.stop(); osc.disconnect(); } catch (e) { } });
+      if (noiseSourceRef.current) { try { noiseSourceRef.current.stop(); noiseSourceRef.current.disconnect(); } catch (e) { } }
       if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
         audioCtxRef.current.close();
       }
@@ -267,7 +267,7 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-        e.preventDefault(); 
+        e.preventDefault();
         setIsActive((prev) => !prev);
       }
     };
@@ -290,22 +290,24 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
     } else if (timeLeft === 0 && isActive) {
       clearInterval(interval);
       setIsActive(false);
-      playAlarm(); 
+      playAlarm();
       if (mode === 'POMODORO') {
         if (onPomodoroComplete) onPomodoroComplete(settings.POMODORO);
-        switchMode('SHORT_BREAK');
+
+        setMode('SHORT_BREAK');
+        setTimeLeft(MODES.SHORT_BREAK.time);
       } else {
-        switchMode('POMODORO');
+        setMode('POMODORO');
+        setTimeLeft(MODES.POMODORO.time);
       }
     }
     return () => clearInterval(interval);
   }, [isActive, timeLeft, mode, isTickingActive, settings.POMODORO, onPomodoroComplete]);
-
-  const switchMode = (newMode) => {
+  const switchMode = useCallback((newMode) => {
     setMode(newMode);
     setTimeLeft(MODES[newMode].time);
     setIsActive(false);
-  };
+  }, [MODES]);
 
   const toggleTimer = () => {
     setIsActive(!isActive);
@@ -326,29 +328,29 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
     <div className="study-timer-container">
       {/* Invisible YouTube Iframes */}
       {currentMusic === 'rain' && (
-        <iframe 
+        <iframe
           style={{ display: 'none' }}
-          src="https://www.youtube.com/embed/69QdAw3ApNk?autoplay=1&start=1214" 
-          frameBorder="0" 
-          allow="autoplay" 
+          src="https://www.youtube.com/embed/69QdAw3ApNk?autoplay=1&start=1214"
+          frameBorder="0"
+          allow="autoplay"
           title="Rain Storm Radio"
         />
       )}
       {currentMusic === 'lofi' && (
-        <iframe 
+        <iframe
           style={{ display: 'none' }}
-          src="https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1" 
-          frameBorder="0" 
-          allow="autoplay" 
+          src="https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1"
+          frameBorder="0"
+          allow="autoplay"
           title="Lo-Fi Radio"
         />
       )}
       {currentMusic === 'instrumental' && (
-        <iframe 
+        <iframe
           style={{ display: 'none' }}
-          src="https://www.youtube.com/embed/n61ULEU7CO0?autoplay=1" 
-          frameBorder="0" 
-          allow="autoplay" 
+          src="https://www.youtube.com/embed/n61ULEU7CO0?autoplay=1"
+          frameBorder="0"
+          allow="autoplay"
           title="Instrumental Radio"
         />
       )}
@@ -361,15 +363,15 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
             <h2>Timer Settings (Minutes)</h2>
             <div className="setting-row">
               <label>Pomodoro</label>
-              <input type="number" min="1" max="90" value={tempSettings.POMODORO} onChange={e => setTempSettings({...tempSettings, POMODORO: Number(e.target.value)})} />
+              <input type="number" min="1" max="90" value={tempSettings.POMODORO} onChange={e => setTempSettings({ ...tempSettings, POMODORO: Number(e.target.value) })} />
             </div>
             <div className="setting-row">
               <label>Short Break</label>
-              <input type="number" min="1" max="30" value={tempSettings.SHORT_BREAK} onChange={e => setTempSettings({...tempSettings, SHORT_BREAK: Number(e.target.value)})} />
+              <input type="number" min="1" max="30" value={tempSettings.SHORT_BREAK} onChange={e => setTempSettings({ ...tempSettings, SHORT_BREAK: Number(e.target.value) })} />
             </div>
             <div className="setting-row">
               <label>Long Break</label>
-              <input type="number" min="1" max="60" value={tempSettings.LONG_BREAK} onChange={e => setTempSettings({...tempSettings, LONG_BREAK: Number(e.target.value)})} />
+              <input type="number" min="1" max="60" value={tempSettings.LONG_BREAK} onChange={e => setTempSettings({ ...tempSettings, LONG_BREAK: Number(e.target.value) })} />
             </div>
             <button className="primary-btn save-btn" onClick={handleSaveSettings}>Save</button>
           </div>
@@ -384,8 +386,8 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
             <h2>Background Audio</h2>
             <div className="music-options">
               {MUSIC_OPTIONS.map(opt => (
-                <button 
-                  key={opt.id} 
+                <button
+                  key={opt.id}
                   className={`music-btn ${currentMusic === opt.id ? 'active' : ''}`}
                   onClick={() => {
                     setCurrentMusic(opt.id);
@@ -408,9 +410,9 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
           <div className="mode-selector">
             {Object.keys(MODES).map((modeKey) => (
               <button
-                 key={modeKey}
-                 className={`mode-btn ${mode === modeKey ? 'active' : ''}`}
-                 onClick={() => switchMode(modeKey)}
+                key={modeKey}
+                className={`mode-btn ${mode === modeKey ? 'active' : ''}`}
+                onClick={() => switchMode(modeKey)}
               >
                 {MODES[modeKey].label}
               </button>
@@ -428,42 +430,42 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
           </button>
           {!zenMode && (
             <>
-          <button className="icon-btn" onClick={resetTimer} aria-label="Reset Timer">
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-               <path d="M3 3v5h5"></path>
-             </svg>
-          </button>
-          <button 
-            className={`icon-btn ${currentMusic !== 'none' ? 'active' : ''}`} 
-            onClick={() => setShowMusicMenu(true)} 
-            title="Select Music"
-            aria-label="Music Selection"
-          >
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-               <path d="M9 18V5l12-2v13"></path>
-               <circle cx="6" cy="18" r="3"></circle>
-               <circle cx="18" cy="16" r="3"></circle>
-             </svg>
-          </button>
-          <button 
-            className={`icon-btn ${isTickingActive ? 'active' : ''}`} 
-            onClick={() => setIsTickingActive(!isTickingActive)} 
-            title="Toggle Traditional Ticking Sound"
-            aria-label="Toggle Ticking Sound"
-          >
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-               <circle cx="12" cy="12" r="10"></circle>
-               <polyline points="12 6 12 12 16 14"></polyline>
-             </svg>
-          </button>
-          <button className="icon-btn" aria-label="Settings" onClick={() => { setTempSettings(settings); setShowSettings(true); }}>
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-               <circle cx="12" cy="12" r="3"></circle>
-               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-             </svg>
-          </button>
-          </>
+              <button className="icon-btn" onClick={resetTimer} aria-label="Reset Timer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                  <path d="M3 3v5h5"></path>
+                </svg>
+              </button>
+              <button
+                className={`icon-btn ${currentMusic !== 'none' ? 'active' : ''}`}
+                onClick={() => setShowMusicMenu(true)}
+                title="Select Music"
+                aria-label="Music Selection"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18V5l12-2v13"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+              </button>
+              <button
+                className={`icon-btn ${isTickingActive ? 'active' : ''}`}
+                onClick={() => setIsTickingActive(!isTickingActive)}
+                title="Toggle Traditional Ticking Sound"
+                aria-label="Toggle Ticking Sound"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </button>
+              <button className="icon-btn" aria-label="Settings" onClick={() => { setTempSettings(settings); setShowSettings(true); }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+              </button>
+            </>
           )}
         </div>
 
@@ -475,28 +477,28 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
               <p className="quote-display">"{quote}"</p>
             </div>
             <form className="task-form" onSubmit={handleAddTask}>
-              <input 
-                type="text" 
-                placeholder="What are you working on today?" 
-                value={taskInput} 
+              <input
+                type="text"
+                placeholder="What are you working on today?"
+                value={taskInput}
                 onChange={e => setTaskInput(e.target.value)}
               />
               <button type="submit" className="add-task-btn">+</button>
             </form>
             <div className="task-list">
-            {tasks.map(task => (
-              <div key={task.id} className={`task-item ${task.completed ? 'completed' : ''}`}>
-                <div className="task-checkbox" onClick={() => toggleTaskCompletion(task.id)}>
-                   {task.completed && <span>✓</span>}
+              {tasks.map(task => (
+                <div key={task.id} className={`task-item ${task.completed ? 'completed' : ''}`}>
+                  <div className="task-checkbox" onClick={() => toggleTaskCompletion(task.id)}>
+                    {task.completed && <span>✓</span>}
+                  </div>
+                  <span className="task-text" onClick={() => toggleTaskCompletion(task.id)}>
+                    {task.text}
+                  </span>
+                  <button className="delete-task-btn" onClick={() => removeTask(task.id)}>✕</button>
                 </div>
-                <span className="task-text" onClick={() => toggleTaskCompletion(task.id)}>
-                  {task.text}
-                </span>
-                <button className="delete-task-btn" onClick={() => removeTask(task.id)}>✕</button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
         )}
       </div>
     </div>
