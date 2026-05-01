@@ -10,13 +10,20 @@ const MUSIC_OPTIONS = [
   { id: 'brown_noise', label: 'White / Brown Noise' }
 ];
 
-const StudyTimer = () => {
+const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
   // Settings State
-  const [settings, setSettings] = useState({
-    POMODORO: 25,
-    SHORT_BREAK: 5,
-    LONG_BREAK: 15
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem('studyTimerSettings');
+    return saved ? JSON.parse(saved) : {
+      POMODORO: 25,
+      SHORT_BREAK: 5,
+      LONG_BREAK: 15
+    };
   });
+  
+  useEffect(() => {
+    localStorage.setItem('studyTimerSettings', JSON.stringify(settings));
+  }, [settings]);
   
   const MODES = {
     POMODORO: { label: 'pomodoro', time: settings.POMODORO * 60 },
@@ -36,7 +43,15 @@ const StudyTimer = () => {
   const [currentMusic, setCurrentMusic] = useState('none');
 
   // Task & Quote State
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState(() => {
+    const saved = localStorage.getItem('studyTimerTasks');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('studyTimerTasks', JSON.stringify(tasks));
+  }, [tasks]);
+
   const [taskInput, setTaskInput] = useState('');
   const [quote, setQuote] = useState("What's your focus today?");
 
@@ -262,6 +277,8 @@ const StudyTimer = () => {
 
   // Timer Countdown logic
   useEffect(() => {
+    document.title = `(${formatTime(timeLeft)}) FocusFlow`;
+
     let interval = null;
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
@@ -275,13 +292,14 @@ const StudyTimer = () => {
       setIsActive(false);
       playAlarm(); 
       if (mode === 'POMODORO') {
+        if (onPomodoroComplete) onPomodoroComplete(settings.POMODORO);
         switchMode('SHORT_BREAK');
       } else {
         switchMode('POMODORO');
       }
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, mode, isTickingActive]);
+  }, [isActive, timeLeft, mode, isTickingActive, settings.POMODORO, onPomodoroComplete]);
 
   const switchMode = (newMode) => {
     setMode(newMode);
@@ -385,18 +403,20 @@ const StudyTimer = () => {
         </div>
       )}
 
-      <div className="timer-content">
-        <div className="mode-selector">
-          {Object.keys(MODES).map((modeKey) => (
-            <button
-               key={modeKey}
-               className={`mode-btn ${mode === modeKey ? 'active' : ''}`}
-               onClick={() => switchMode(modeKey)}
-            >
-              {MODES[modeKey].label}
-            </button>
-          ))}
-        </div>
+      <div className={`timer-content ${zenMode ? 'zen-centered' : ''}`}>
+        {!zenMode && (
+          <div className="mode-selector">
+            {Object.keys(MODES).map((modeKey) => (
+              <button
+                 key={modeKey}
+                 className={`mode-btn ${mode === modeKey ? 'active' : ''}`}
+                 onClick={() => switchMode(modeKey)}
+              >
+                {MODES[modeKey].label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="time-display">
           {formatTime(timeLeft)}
@@ -406,6 +426,8 @@ const StudyTimer = () => {
           <button className="primary-btn" onClick={toggleTimer}>
             {isActive ? 'pause' : 'start'}
           </button>
+          {!zenMode && (
+            <>
           <button className="icon-btn" onClick={resetTimer} aria-label="Reset Timer">
              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
@@ -441,23 +463,27 @@ const StudyTimer = () => {
                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
              </svg>
           </button>
+          </>
+          )}
         </div>
 
         {/* Task / To-Do Section */}
-        <div className="task-section">
-          <div className="quote-display">
-            <p>"{quote}"</p>
-          </div>
-          <form className="task-form" onSubmit={handleAddTask}>
-            <input 
-              type="text" 
-              placeholder="What are you working on?" 
-              value={taskInput} 
-              onChange={e => setTaskInput(e.target.value)}
-            />
-            <button type="submit" className="add-task-btn">+</button>
-          </form>
-          <div className="task-list">
+        {!zenMode && (
+          <div className="task-section">
+            <div className="task-header">
+              <h3>Daily Tasks</h3>
+              <p className="quote-display">"{quote}"</p>
+            </div>
+            <form className="task-form" onSubmit={handleAddTask}>
+              <input 
+                type="text" 
+                placeholder="What are you working on today?" 
+                value={taskInput} 
+                onChange={e => setTaskInput(e.target.value)}
+              />
+              <button type="submit" className="add-task-btn">+</button>
+            </form>
+            <div className="task-list">
             {tasks.map(task => (
               <div key={task.id} className={`task-item ${task.completed ? 'completed' : ''}`}>
                 <div className="task-checkbox" onClick={() => toggleTaskCompletion(task.id)}>
@@ -471,6 +497,7 @@ const StudyTimer = () => {
             ))}
           </div>
         </div>
+        )}
       </div>
     </div>
   );
