@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './StudyTimer.css';
 
 const MUSIC_OPTIONS = [
@@ -25,11 +25,11 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
     localStorage.setItem('studyTimerSettings', JSON.stringify(settings));
   }, [settings]);
 
-  const MODES = {
+  const MODES = useMemo(() => ({
     POMODORO: { label: 'pomodoro', time: settings.POMODORO * 60 },
     SHORT_BREAK: { label: 'short break', time: settings.SHORT_BREAK * 60 },
     LONG_BREAK: { label: 'long break', time: settings.LONG_BREAK * 60 },
-  };
+  }), [settings.POMODORO, settings.SHORT_BREAK, settings.LONG_BREAK]);
 
   const [mode, setMode] = useState('POMODORO');
   const [timeLeft, setTimeLeft] = useState(MODES.POMODORO.time);
@@ -302,7 +302,7 @@ const StudyTimer = ({ onPomodoroComplete, zenMode }) => {
       }
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, mode, isTickingActive, settings.POMODORO, onPomodoroComplete]);
+  }, [isActive, timeLeft, mode, isTickingActive, settings.POMODORO, onPomodoroComplete, MODES]);
   const switchMode = useCallback((newMode) => {
     setMode(newMode);
     setTimeLeft(MODES[newMode].time);
